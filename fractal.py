@@ -207,6 +207,92 @@ class FractalDreamWeaver:
         anim_section = self._create_section_header(param_frame, "Animation")
         self._create_entry_with_label(anim_section, "Frames", self.num_frames)
         self._create_entry_with_label(anim_section, "Duration (ms)", self.frame_duration)
+        feature/fractal-dream-weaver-pro
+        
+        # -- Presets --
+        preset_section = self._create_section_header(param_frame, "Presets")
+        ctk.CTkButton(preset_section, text="Spiral Galaxy (Julia)", command=self.load_preset_spiral).pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkButton(preset_section, text="Seahorse Valley (Mandelbrot)", command=self.load_preset_seahorse).pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkButton(preset_section, text="Cosmic Reef (Burning Ship)", command=self.load_preset_cosmic_reef).pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkButton(preset_section, text="Dragon's Breath (Tricorn)", command=self.load_preset_dragons_breath).pack(fill=tk.X, padx=5, pady=5)
+
+        # -- Controls & Application --
+        controls_section = self._create_section_header(param_frame, "Controls & Application")
+        ctk.CTkCheckBox(controls_section, text="Auto Update on Change", variable=self.auto_update).pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkButton(controls_section, text="Generate", command=self.thread_generate).pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkButton(controls_section, text="Export Image", command=self.export_image).pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkButton(controls_section, text="Export Animation", command=self.thread_animate).pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkLabel(controls_section, text="Appearance Mode").pack(fill=tk.X, padx=5, pady=(10,0))
+        ctk.CTkOptionMenu(controls_section, variable=self.appearance_mode, values=["light", "dark", "system"], command=self.change_appearance).pack(fill=tk.X, padx=5, pady=5)
+        ctk.CTkButton(controls_section, text="About", command=self.show_about).pack(fill=tk.X, padx=5, pady=5)
+
+        # Final setup
+        self._on_fractal_type_change(self.fractal_type.get())
+
+    def _create_section_header(self, parent, text):
+        section_frame = ctk.CTkFrame(parent, fg_color=("gray90", "gray20"))
+        section_frame.pack(fill=tk.X, pady=(10, 2), padx=5, ipady=3)
+        ctk.CTkLabel(section_frame, text=text, font=ctk.CTkFont(weight="bold")).pack()
+        return ctk.CTkFrame(parent) # Return a content frame
+        
+    def _create_slider_with_label(self, parent, text, variable, from_, to, var_type="float"):
+        frame = ctk.CTkFrame(parent)
+        frame.pack(fill=tk.X, padx=5, pady=(2,2))
+        
+        label = ctk.CTkLabel(frame, text=text, width=120)
+        label.pack(side=tk.LEFT, padx=(5, 10))
+        
+        value_label = ctk.CTkLabel(frame, text="", width=50, anchor="e")
+        value_label.pack(side=tk.RIGHT, padx=(10, 5))
+
+        def update_from_slider(value):
+            if var_type == "int":
+                value_label.configure(text=f"{int(float(value))}")
+            else:
+                value_label.configure(text=f"{float(value):.3f}")
+            if self.auto_update.get():
+                self.trigger_generation()
+        
+        def update_from_var(*args):
+            val = variable.get()
+            if var_type == "int":
+                value_label.configure(text=f"{int(val)}")
+                slider.set(int(val))
+            else:
+                value_label.configure(text=f"{float(val):.3f}")
+                slider.set(float(val))
+
+        number_of_steps = (to - from_) if var_type == "int" else None
+        slider = ctk.CTkSlider(frame, variable=variable, from_=from_, to=to, number_of_steps=number_of_steps, command=update_from_slider)
+        slider.pack(fill=tk.X, expand=True)
+        
+        variable.trace_add("write", update_from_var)
+        update_from_var() # Initial set
+        return slider
+
+    def _create_entry_with_label(self, parent, text, variable):
+        frame = ctk.CTkFrame(parent)
+        frame.pack(fill=tk.X, padx=5, pady=(2,2))
+        label = ctk.CTkLabel(frame, text=text, width=120)
+        label.pack(side=tk.LEFT, padx=(5, 10))
+        entry = ctk.CTkEntry(frame, textvariable=variable)
+        entry.pack(fill=tk.X, expand=True, padx=(0, 5))
+        return entry
+
+    def _on_fractal_type_change(self, fractal_type):
+        """Conditionally enables or disables the Julia parameter controls."""
+        is_julia = (fractal_type == "Julia")
+        new_state = tk.NORMAL if is_julia else tk.DISABLED
+        
+        # The self.julia_section frame contains rows (which are also frames).
+        # We need to iterate through the widgets inside each row.
+        for row_frame in self.julia_section.winfo_children():
+            for widget in row_frame.winfo_children():
+                # Only CTkSlider widgets can be disabled.
+                if isinstance(widget, ctk.CTkSlider):
+                    widget.configure(state=new_state)
+        
+
         
         # -- Presets --
         preset_section = self._create_section_header(param_frame, "Presets")
@@ -286,6 +372,7 @@ class FractalDreamWeaver:
         for child in self.julia_section.winfo_children():
             child.configure(state=new_state)
 
+        main
         if self.auto_update.get():
             self.trigger_generation()
 
